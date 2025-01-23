@@ -18,7 +18,7 @@ class Role():
         self.已死亡=False
         
         # --- 妖 气 与 神 通 ---
-        self.现阶段="筑基"
+        self._现阶段="筑基"
         self.神通功能开启=False
         self.妖气=0
         self.携带神通=[]
@@ -32,7 +32,7 @@ class Role():
         # --- 战 斗 属 性 相 关 ---
         self.吸=self.连=self.暴=0
         self.抗吸=self.抗连=self.抗暴=0
-        self.触发了连击=self.触发了暴击=False
+        self._触发了连击=self._触发了暴击=False
         self.暴伤系数=2
         self.青龙灵脉=0
         self.每次暴击后暴伤系数递增=(7+5*self.青龙灵脉)/100 if self.青龙灵脉 else 0
@@ -62,6 +62,42 @@ class Role():
         self.主灵兽伤倍率_乘在攻=0
         self.主灵兽出手频率=0
         self.buff_攻=[0,0,False]
+
+    
+    def 为了专用于新号而开始(self):
+        if self.现阶段 in ("筑基"):
+            self.神通功能开启=False
+
+    @property
+    def 现阶段(self):
+        return self._现阶段
+        
+    @现阶段.setter    
+    def 现阶段(self,value):
+         self._现阶段=value
+         self.为了专用于新号而开始()
+    
+    @property
+    def 触发了暴击(self):
+        return self._触发了暴击
+        
+    @触发了暴击.setter    
+    def 触发了暴击(self,value):
+         self._触发了暴击=value
+         if self._触发了暴击:
+             self.记者.本场触发暴击+=1
+             self.记者.累计触发暴击+=1
+             
+    @property
+    def 触发了连击(self):
+        return self._触发了连击
+        
+    @触发了连击.setter    
+    def 触发了连击(self,value):
+         self._触发了连击=value
+         if self._触发了连击:
+             self.记者.本场触发连击+=1
+             self.记者.累计触发连击+=1                  
     
     @property
     def 剩余血量(self):
@@ -74,8 +110,14 @@ class Role():
         self.已掉血量=self.血-self._剩余血量
         self.剩余血量百分比=self.剩余血量/self.血*100
         self.已掉血量百分比=self.已掉血量/self.血*100        
-        if self.已掉血量百分比 > self.对手.记者.历史将敌人压到最低血线:
-            self.对手.记者.历史将敌人压到最低血线=self.已掉血量百分比
+        if self.已掉血量百分比 > self.对手.记者.历史将敌人压到最低血线["数值"]:
+            self.对手.记者.历史将敌人压到最低血线["那一场附带信息"]=\
+f"(那一场：连击{self.对手.记者.本场触发连击}次，暴击{self.对手.记者.本场触发暴击}次，出现在第{self.战场.第几场}场)"
+            if self.已掉血量百分比>=100 and self.对手.记者.历史将敌人压到最低血线["数值"]<100:
+                self.对手.记者.第一次使敌人掉一管血="(第一次打掉敌人100%以上血是在"+self.对手.记者.历史将敌人压到最低血线["那一场附带信息"][1:-1]+")"
+            self.对手.记者.历史将敌人压到最低血线["数值"]=self.已掉血量百分比
+            
+            
         self.已死亡=self.剩余血量<=0
         if self.已死亡:self.检查复活()
         
@@ -162,13 +204,11 @@ class Role():
     def 连击暴击判定(self):
         if 1 <= random.randint(1,100) <= self.连-self.对手.抗连:
             self.触发了连击=True
-            self.记者.累计触发连击+=1
             if not self.战场.关闭战报:print(f"❗️{self.名称}触发了连击")
         else:self.触发了连击=False
         
         if 1 <= random.randint(1,100) <= self.暴-self.对手.抗暴:
             self.触发了暴击=True
-            self.记者.累计触发暴击+=1
             if not self.战场.关闭战报:print(f"❗️{self.名称}触发了暴击")
         else:self.触发了暴击=False
    
@@ -219,10 +259,6 @@ class Role():
         self.面板_有视防御伤百分比=1/self.面板_打对方回合数
         self.面板_吸血回血量=0 if self.吸-self.对手.抗吸<=0 else int(self.面板_有视防御伤*(self.吸-self.对手.抗吸)/100)
         self.面板_主灵兽伤百分比=self.攻*self.主灵兽伤倍率_乘在攻/self.对手.血
-    
-    def 为了专用于新号而开始(self):
-        if self.现阶段 in ("筑基"):
-            self.神通功能开启=False
 
              
     def 进行吸血(self):

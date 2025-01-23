@@ -119,9 +119,9 @@ class Fight():
 
     # --- 媒 体 活 动 与 赛 程 安 排 ---
     
-    def 记者召开发布会(self,第几场):
+    def 记者召开发布会(self,这几场):
         print("\033[32;40m",end="")
-        print(f"\n---《针对{第几场}记者召开发布会》---")
+        print(f"\n---《针对{这几场}记者召开发布会》---")
         print("\033[0m",end="")
         
         print("\033[1;34m")
@@ -136,9 +136,17 @@ class Fight():
         
     def 再来多少场(self):
         while True:
-            answer=input("再来多少场？(输入Q/q退出):")
+            answer=input("❓再来多少场？(Q/q:退出|C/c:关闭战报|O/o:开启战报):\t")
             if answer.lower()=="q":
                 return "quit"
+            elif answer.lower()=="c":
+                self.关闭战报=True
+                print("⚡️战报已关闭\n")
+                continue
+            elif answer.lower()=="o":
+                self.关闭战报=False
+                print("⚡️战报已开启\n")
+                continue        
             try:场次=int(answer)
             except:
                 print("❌场数必须是整数\n")
@@ -153,11 +161,19 @@ class Fight():
         print("\033[0m")
         
         if 场次>3:
-            answer=input(f"❓场次过多(每次最多支持连续3场战况显示(已第{self.第几场}场))，强制关闭战报，是否允许？(如果不允许，则强制关闭场次)\n(默认:是(Enter:默认))\n")
+            prompt=["❓场次过多(每次最多支持连续3场战况显示(已",
+            	"\x1b[7m", 
+            	f"第{self.第几场}场",
+            	"\033[0m",
+            	"))强制关闭战报，是否允许？",
+            	"(如果不允许，则强制关闭场次)\n(默认:是(Enter:默认))\n"]
+            prompt="".join(prompt)
+            answer=input(prompt)
             if not answer:self.关闭战报=True
             else:场次=0
         for i in range(场次):
             self.战况报告()
+        
         self.记者召开发布会(f"这{场次}场")
 
     # --- 每到下一场刷新删档 ---
@@ -169,6 +185,7 @@ class Fight():
         此方.记者.最近一场有效连击率历史记录.clear()
         此方.记者.最近一场有效暴击率历史记录.clear()
         此方.需要失去几次行动=0
+        此方.记者.本场触发暴击=此方.记者.本场触发连击=0
             
     def 回合开始(self):
         self.第几回合+=1
@@ -176,9 +193,10 @@ class Fight():
     
                 
     def 战况报告(self):
+        self.第几场+=1
         if not self.关闭战报:
             print("\x1b[7m",end="")
-            print("\n\t《战场：准确战况报告》\t",end="")
+            print(f"\n\t《战场：准确战况报告》之第{self.第几场}场\t",end="")
             print("\033[0m")
         [self.整场数据重置(i) for i in (self.左, self.左.对手)]
         
@@ -200,8 +218,7 @@ class Fight():
                     if not self.关闭战报:
                         print(type(e).__name__,e.__str__(),sep=":")                        
                         
-                    [_.记者的变化() for _ in (左,左.对手)]
-                    self.第几场+=1      
+                    [_.记者的变化() for _ in (左,左.对手)]      
                     break
             if not self.关闭战报:print("（目前剩余血量：%s%g(%.2f%%) VS %s%g(%.2f%%)）"%(\
                      左.名称, 左.剩余血量, 左.已掉血量百分比,
