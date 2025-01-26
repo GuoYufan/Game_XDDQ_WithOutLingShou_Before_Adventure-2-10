@@ -1,7 +1,7 @@
 import random, math, traceback
 from Stat import Stat
 from Fight import Fight, FightEnd
-from Buff import Buff
+
 
 
 class Role():
@@ -19,8 +19,6 @@ class Role():
         self.已死亡=False
         
         # --- 妖 气 与 神 通 ---
-        	# 筑基阶段：开始有灵兽
-        	# 金丹阶段：开始有精怪
         self._现阶段="筑基"
         self.神通功能开启=False
         self.妖气=0
@@ -76,19 +74,12 @@ class Role():
         
         self.buff_ON=True
         
-        self.连击率渐减系数=1
-    
-    def 获取基本属性(self):
-        return (self.血, self.攻, self.防, self.敏)
-    
-    def 关闭连暴(self):
-        self.连=self.暴=0
+        self.连击率渐减系数=0.8
         
     
     def 为了专用于新号而开始(self):
-        if self.现阶段 in ("筑基", "金丹"):
+        if self.现阶段 in ("筑基"):
             self.神通功能开启=False
-        else:self.神通功能开启=True
 
     @property
     def 现阶段(self):
@@ -131,9 +122,14 @@ class Role():
         self._剩余血量=value
         self.已掉血量=self.血-self._剩余血量
         self.剩余血量百分比=self.剩余血量/self.血*100
-        self.已掉血量百分比=self.已掉血量/self.血*100
-        if self.已掉血量百分比> self.对手.记者.本场将敌人压到最低血线:
-            self.对手.记者.本场将敌人压到最低血线=self.已掉血量百分比         
+        self.已掉血量百分比=self.已掉血量/self.血*100        
+        if self.已掉血量百分比 > self.对手.记者.历史将敌人压到最低血线["数值"]:
+            self.对手.记者.历史将敌人压到最低血线["那一场附带信息"]=\
+f"(那一场：连击{self.对手.记者.本场触发连击}次，暴击{self.对手.记者.本场触发暴击}次，出现在第{self.战场.第几场}场)"
+            if self.已掉血量百分比>=100 and self.对手.记者.历史将敌人压到最低血线["数值"]<100:
+                self.对手.记者.第一次使敌人掉一管血="(第一次打掉敌人100%以上血是在"+self.对手.记者.历史将敌人压到最低血线["那一场附带信息"][1:-1]+")"
+            self.对手.记者.历史将敌人压到最低血线["数值"]=self.已掉血量百分比
+            
             
         self.已死亡=self.剩余血量<=0
         if self.已死亡:self.检查复活()
@@ -144,7 +140,7 @@ class Role():
     @时刻.setter
     def 时刻(self,value):
         self._时刻=value
-        if self._时刻 in ("掉血之未回妖气","普攻后之未回妖气","受到蚀魂咒","释放道法后"):
+        if self._时刻 in ("掉血之未回妖气","普攻后之未回妖气","受到蚀魂咒"):
             if self.神通功能开启:self.妖气变化()
         elif self._时刻=="普攻后之未发动神通":
             if self.神通功能开启:self.神通跟随()
@@ -202,7 +198,7 @@ class Role():
             if not self.战场.关闭战报:print("（目前剩余血量：%s%g(%.2f%%) VS %s%g(%.2f%%)）"%(\
                  左.名称, 左.剩余血量, 左.已掉血量百分比,
                  左.对手.名称, 左.对手.剩余血量, 左.对手.已掉血量百分比))
-            if 左.神通功能开启 and not self.战场.关闭战报:
+            if 左.神通功能开启 and not self.战场关闭战报:
                 print("（目前妖气：%s%g VS %s%g）"%(\
                     左.名称,左.妖气,\
                     左.对手.名称,左.对手.妖气))
@@ -219,22 +215,17 @@ class Role():
         self.剩余血量-=self.本次伤害受到
     
     def 连击暴击判定(self):
-        有效连击率 = (self.连-self.对手.抗连)*self.连击率渐减系数
-
-        if 1 <= random.randint(1,100) <= 有效连击率:
+        if 1 <= random.randint(1,100) <= (self.连-self.对手.抗连)*self.连击率渐减系数:
             self.触发了连击=True
-            self.连击率渐减系数*=0.5
-            if not self.战场.关闭战报:
-                print(f"❗️{self.名称}触发了连击(此前连击率:{有效连击率:g}%)")
+            self.连击率渐减系数*=0.8
+            if not self.战场.关闭战报:print(f"❗️{self.名称}触发了连击")
         else:
             self.触发了连击=False
             self.连击率渐减系数=1
         
-        有效暴击率 = self.暴-self.对手.抗暴
-        if 1 <= random.randint(1,100) <= 有效暴击率:
+        if 1 <= random.randint(1,100) <= self.暴-self.对手.抗暴:
             self.触发了暴击=True
-            if not self.战场.关闭战报:
-                print(f"❗️{self.名称}触发了暴击(此前暴击率:{有效暴击率:g}%)")
+            if not self.战场.关闭战报:print(f"❗️{self.名称}触发了暴击")
         else:self.触发了暴击=False
    
     def 释放道法(self):
@@ -305,8 +296,6 @@ class Role():
     def 记者的变化(self):
         if self.战场.谁胜==self.记者.选手:
             self.记者.获胜次数+=1
-        elif self.战场.谁胜==None:
-            self.记者.平局次数+=1
         self.记者.参赛次数+=1
     
 
@@ -351,7 +340,7 @@ class Role():
             if self.buff_攻.active==False:
                 #print("从失效到激活",self.buff_攻.role.攻, self.buff_攻.__dict__)
                 #input()
-                self.buff_攻.activate("攻",0.2,1)
+                self.buff_攻.activate("攻",1.2,1)
                 #print("从失效到激活",self.buff_攻.role.攻, self.buff_攻.__dict__)
                 #input()
             if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})")
@@ -362,7 +351,7 @@ class Role():
             # 再怎么样也只是效果不断，而从来不会是更强的效果。
             # 否则加强效果，连乘多次，太变态了。
             if self.buff_连.active==False:
-                self.buff_连.activate("连",20,1)
+                self.buff_连.activate("连",1.2,1)
             
             if not self.战场.关闭战报:print(f"现连击率{self.连-self.对手.抗连:g}%)")   	
         
@@ -406,3 +395,65 @@ class Role():
             return
             
         
+class Buff():
+    def __init__(self, name, role, multiplier, duration):
+        # 累计触发了几次
+        self.time=0
+        # 名称：攻 或 连
+        self.name = name
+        # 角色：从属于哪个角色
+        self.role = role
+        # 增益效果
+        self.multiplier = multiplier
+        # 持续回合数
+        self.duration = duration
+        # 是否激活
+        self.active = False
+        
+    # 生效 / 应用效果
+    def apply(self):
+        if not self.active:
+            if self.name=="攻":
+                self.role.攻 *= self.multiplier
+                self.role.攻 = int(self.role.攻)
+            elif self.name=="连":
+                self.role.连 *= self.multiplier
+            elif self.name=="减伤":
+            	self.role.减伤 += self.multiplier
+            self.active = True
+
+    # 刷新持续回合数
+    def refresh(self,d):
+        self.duration = d
+        
+    # 剩余回合数减少
+    def decrement(self):
+        if self.active:
+            self.duration -= 1
+            if self.duration <= 0: pass
+    
+    # 触发效果          
+    def activate(self, n, m, d):
+        self.time+=1
+        self.name = n
+        self.multiplier = m        
+        self.apply()
+        self.refresh(d)
+        self.active = True
+    
+    # 是否从激活到失效         
+    def is_deactivated(self):
+        return self.time>0 and self.active==True and self.duration==0
+    
+    
+    # 当从激活到失效时
+    def deactivate(self):
+        if self.name=="攻":
+            self.role.攻/=self.multiplier
+            self.role.攻=int(self.role.攻)
+        elif self.name=="连":
+            self.role.连/=self.multiplier
+        elif self.name=="减伤":
+        	self.role.减伤-=self.multiplier
+        self.active=False
+            
