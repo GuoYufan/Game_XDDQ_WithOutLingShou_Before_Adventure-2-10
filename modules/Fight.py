@@ -144,11 +144,7 @@ class Fight():
     def 第一场(self):
         self.战况报告()
         self.记者召开发布会("第一场")
-    
-    def 关闭连暴(self):
-        self.左.连=self.左.暴=self.左.暴=self.左.对手.暴=0
-    
-        
+            
     def 再来多少场(self):
         while True:
             answer=input("❓再来多少场？\n(Q/q:退出 |R/r:是否关闭战报 |F/f:关闭连暴):\n\t")
@@ -164,7 +160,7 @@ class Fight():
                     print("⚡️战报已开启\n")                    
                 continue      
             elif answer.lower()=="f":
-                    self.关闭连暴()
+                    [_.关闭连暴() for _ in (self.左, self.左.对手)]
                     continue
 
                 
