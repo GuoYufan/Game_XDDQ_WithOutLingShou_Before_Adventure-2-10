@@ -27,8 +27,8 @@ class Fight():
         else:
             self.左.对手.哪一方="先手"
             self.左.哪一方="后手"            
-            self.先手方=self.左.对手    
-
+            self.先手方=self.左.对手                        
+            
     def 展示双方战前面板信息(self):
         [_.计算单方面板() for _ in (self.左,self.左.对手)]
         
@@ -53,11 +53,21 @@ class Fight():
         	    ",".join(self.左.对手.携带神通)
             	)
           	)
-        print("[%s吸血率%g%%,连击率%g%%,暴击率%g%%]"%(
+        print("[%s吸血率%g%%,连击率%g%%,暴击率%g%%%s"%(
             	self.左.名称,
              self.左.吸-self.左.对手.抗吸,
              self.左.连-self.左.对手.抗连,
              self.左.暴-self.左.对手.抗暴,
+             "(已关闭连暴)" if not any((self.左.连, self.左.暴)) else "",
+             ),end=""
+        	)
+        	
+        print("|%s吸血率%g%%,连击率%g%%,暴击率%g%%%s]"%(
+            	self.左.对手.名称,
+             self.左.对手.吸-self.左.抗吸,
+             self.左.对手.连-self.左.抗连,
+             self.左.对手.暴-self.左.抗暴,
+             "(已关闭连暴)" if not any((self.左.对手.连, self.左.对手.暴)) else "",
              )
         	)
     
@@ -134,20 +144,30 @@ class Fight():
     def 第一场(self):
         self.战况报告()
         self.记者召开发布会("第一场")
+    
+    def 关闭连暴(self):
+        self.左.连=self.左.暴=self.左.暴=self.左.对手.暴=0
+    
         
     def 再来多少场(self):
         while True:
-            answer=input("❓再来多少场？(Q/q:退出|C/c:关闭战报|O/o:开启战报):\t")
+            answer=input("❓再来多少场？\n(Q/q:退出 |R/r:是否关闭战报 |F/f:关闭连暴):\n\t")
             if answer.lower()=="q":
                 return "quit"
-            elif answer.lower()=="c":
-                self.关闭战报=True
-                print("⚡️战报已关闭\n")
-                continue
-            elif answer.lower()=="o":
-                self.关闭战报=False
-                print("⚡️战报已开启\n")
-                continue        
+            elif answer.lower()=="r":
+                answer=input("❓是否关闭战报？(Y/y:关闭 |N/n:开启)\n\t")
+                if answer.lower()=="y":
+                    self.关闭战报=True
+                    print("⚡️战报已关闭\n")                    
+                elif answer.lower()=="n":
+                    self.关闭战报=False
+                    print("⚡️战报已开启\n")                    
+                continue      
+            elif answer.lower()=="f":
+                    self.关闭连暴()
+                    continue
+
+                
             try:场次=int(answer)
             except:
                 print("❌场数必须是整数\n")
@@ -167,7 +187,7 @@ class Fight():
             	f"第{self.第几场}场",
             	"\033[0m",
             	"))强制关闭战报，是否允许？",
-            	"(如果不允许，则强制关闭场次)\n(默认:是(Enter:默认))\n"]
+            	"(如果不允许，则强制关闭场次)\n(Enter(推荐):强制关闭战报 |否:强制关闭场次)\n"]
             prompt="".join(prompt)
             answer=input(prompt)
             if not answer:self.关闭战报=True
@@ -179,6 +199,8 @@ class Fight():
 
     # --- 每到下一场刷新删档 ---
     def 整场数据重置(self,此方):
+        此方.记者.本场将敌人压到最低血线=0
+        self.谁胜=None
         self.第几回合=0
         此方.剩余血量=此方.血
         此方.暴伤系数=2
@@ -218,7 +240,7 @@ class Fight():
                 else:
                     if not self.关闭战报:
                         print(type(e).__name__,e.__str__(),sep=":")                        
-                        
+                    # 决出胜负
                     [_.记者的变化() for _ in (左,左.对手)]      
                     break
             if not self.关闭战报:print("（目前剩余血量：%s%g(%.2f%%) VS %s%g(%.2f%%)）"%(\
@@ -231,6 +253,10 @@ class Fight():
                 print("（目前妖气：%s%g VS %s%g）"%(\
                         左.名称,左.妖气,\
                         左.对手.名称,左.对手.妖气))
+            # 平局
+            if i==14 and not self.谁胜:
+                [_.记者的变化() for _ in (左,左.对手)]
+                if not self.关闭战报:print("\n(回合数打完仍未决出胜负)")
             if not self.关闭战报:print()
             self.先手方.时刻="回合结束时"
             self.先手方.对手.时刻="回合结束时"
