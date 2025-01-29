@@ -1,3 +1,5 @@
+import math
+
 class Buff():
     def __init__(self, name, role, gain, duration):
         # 累计触发了几次
@@ -17,8 +19,7 @@ class Buff():
     def apply(self):
         if not self.active:
             if self.name=="攻":
-                self.role.攻 += self.gain *self.role.攻
-                self.role.攻 = int(self.role.攻)
+                self.role.攻 *= self.gain                
             elif self.name=="连":
                 self.role.连 += self.gain
             elif self.name=="减伤":
@@ -52,8 +53,8 @@ class Buff():
     # 当从激活到失效时
     def deactivate(self):
         if self.name=="攻":
-            self.role.攻-=self.gain*self.role.攻
-            self.role.攻=int(self.role.攻)
+            # 考虑用分数使得乘过去除回来的过程中还原到一致
+            self.role.攻/=self.gain            
         elif self.name=="连":
             self.role.连-=self.gain
         elif self.name=="减伤":
