@@ -33,9 +33,9 @@ class Role():
         self.可复活次数=0
         
         # --- 战 斗 属 性 相 关 ---
-        self.吸=self.连=self.暴=0
-        self.抗吸=self.抗连=self.抗暴=0
-        self._触发了连击=self._触发了暴击=False
+        self.吸=self.连=self.暴=self.反=0
+        self.抗吸=self.抗连=self.抗暴=self.抗反=0
+        self._触发了连击=self._触发了暴击=self._触发了反击=False
         self.暴伤系数=2
         self.青龙灵脉=0
         self.每次暴击后暴伤系数递增=(7+5*self.青龙灵脉)/100 if self.青龙灵脉 else 0
@@ -65,26 +65,25 @@ class Role():
         self.主灵兽名称=""
         self.主灵兽伤倍率_乘在攻=0
         self.主灵兽出手频率=0
-        self.buff_攻=Buff("攻",self,0,0)
-        self.buff_连=Buff("连",self,0,0)
+        self.buff=dict.fromkeys(("攻","连","减伤"))
+        for key in self.buff:
+            self.buff[key]=Buff(key,self,0,0) 
+        
         self.主灵兽治疗倍率_乘在攻=0
         
         # --- 增 减 伤 ---
-        self.buff_减伤=Buff("减伤",self,0,0)
         self.增伤=0
         self.减伤=0
         
+        # --- 对是否支持buff功能的开关 ---
         self.buff_ON=True
         
         self.连击率渐减系数=1
+   
     
     def 获取基本属性(self):
         return (self.血, self.攻, self.防, self.敏)
-    
-    def 关闭连暴(self):
-        self.连=self.暴=0
-        
-    
+                
     def 为了专用于新号而开始(self):
         if self.现阶段 in ("筑基", "金丹"):
             self.神通功能开启=False
@@ -105,6 +104,8 @@ class Role():
         
     @触发了暴击.setter    
     def 触发了暴击(self,value):
+         if self.战场.关闭连暴反:
+             value=False
          self._触发了暴击=value
          if self._触发了暴击:
              self.记者.本场触发暴击+=1
@@ -115,11 +116,26 @@ class Role():
         return self._触发了连击
         
     @触发了连击.setter    
-    def 触发了连击(self,value):
-         self._触发了连击=value
+    def 触发了连击(self,value):        
+         if self.战场.关闭连暴反:
+             value=False
+         self._触发了连击=value        
          if self._触发了连击:
              self.记者.本场触发连击+=1
-             self.记者.累计触发连击+=1                  
+             self.记者.累计触发连击+=1
+
+    @property
+    def 触发了反击(self):
+        return self._触发了反击
+        
+    @触发了反击.setter    
+    def 触发了反击(self,value):
+         if self.战场.关闭连暴反:
+             value=False
+         self._触发了反击=value
+         if self._触发了反击:
+             self.记者.本场触发反击+=1
+             self.记者.累计触发反击+=1                  
     
     @property
     def 剩余血量(self):
@@ -129,7 +145,7 @@ class Role():
     def 剩余血量(self,value):
         if value>self.血:value=self.血
         self._剩余血量=value
-        self.已掉血量=self.血-self._剩余血量
+        self.已掉血量=self.血-self.剩余血量
         self.剩余血量百分比=self.剩余血量/self.血*100
         self.已掉血量百分比=self.已掉血量/self.血*100
         if self.已掉血量百分比> self.对手.记者.本场将敌人压到最低血线:
@@ -192,20 +208,16 @@ class Role():
                 
     def 计算本次伤害受到(self):
         self.本次伤害受到=self.对手.本次伤害出发
-        if not self.战场.关闭战报:print(f"{self.名称}受到伤害:{int(self.本次伤害受到)} 掉血百分比:{self.本次伤害受到/self.血*100:.2f}%")
-    
+        if not self.战场.关闭战报:
+            print("\033[34m" if self.名称=="敌" else "\x1b[31m",end=str())
+            print(f"{self.名称}受到伤害:{int(self.本次伤害受到)} 掉血百分比:{self.本次伤害受到/self.血*100:.2f}%")
+            print("\033[0m",end="")
     def 检查复活(self):
         self.已死亡=self.剩余血量<=0
         左=self.战场.左
         
         if self.已死亡:
-            if not self.战场.关闭战报:print("（目前剩余血量：%s%g(%.2f%%) VS %s%g(%.2f%%)）"%(\
-                 左.名称, 左.剩余血量, 左.已掉血量百分比,
-                 左.对手.名称, 左.对手.剩余血量, 左.对手.已掉血量百分比))
-            if 左.神通功能开启 and not self.战场.关闭战报:
-                print("（目前妖气：%s%g VS %s%g）"%(\
-                    左.名称,左.妖气,\
-                    左.对手.名称,左.对手.妖气))
+            if not self.战场.关闭战报:self.战场.显示该回合战斗结果()            
             if not (self.复活未起身 or self.可复活次数>0):
                 if not self.战场.关闭战报:
                     print(f"（{self.名称}已死，无复活）")
@@ -219,8 +231,11 @@ class Role():
         self.剩余血量-=self.本次伤害受到
     
     def 连击暴击判定(self):
+        if self.战场.关闭连暴反:return
+        
         有效连击率 = (self.连-self.对手.抗连)*self.连击率渐减系数
-
+        
+        
         if 1 <= random.randint(1,100) <= 有效连击率:
             self.触发了连击=True
             self.连击率渐减系数*=0.5
@@ -229,6 +244,7 @@ class Role():
         else:
             self.触发了连击=False
             self.连击率渐减系数=1
+              
         
         有效暴击率 = self.暴-self.对手.抗暴
         if 1 <= random.randint(1,100) <= 有效暴击率:
@@ -240,28 +256,37 @@ class Role():
     def 释放道法(self):
         print("❗️释放道法")
         self.时刻="释放道法后"
+    
+    def 反击判定(self):
+        if self.战场.关闭连暴反:return
         
+        有效反击率 = self.反-self.对手.抗反
+        #input(有效反击率)             
+        if 1 <= random.randint(1,100) <= 有效反击率:
+            self.触发了反击=True
+            if not self.战场.关闭战报:                
+                print(f"❗️{self.名称}触发了反击(此前反击率:{有效反击率:g}%)")
+                
+        else:self.触发了反击=False
+   
         
     def 进行普攻(self):
-        self.时刻="普攻后之未回妖气"
+        if not self.触发了反击:self.时刻="普攻后之未回妖气"
         while True:
             self.连击暴击判定()
             self.计算本次伤害出发("有视防御伤")
-            self.对手.计算本次伤害受到()
-            '''
-            if self.战场.第几回合==3:
-                print(self.攻)
-                print(self.本次伤害出发)
-                print(self.对手.本次伤害受到)
-                input()
-                '''
+            self.对手.计算本次伤害受到()            
             self.进行吸血()
             self.对手.时刻=="掉血之未回妖气"
             self.时刻="普攻后之未发动神通"
-            self.对手.掉血之血条变化()   
-            if self.触发了连击:                
+            self.对手.掉血之血条变化()
+            self.对手.反击判定()
+            if self.触发了连击:          
                 self.触发了连击=False
-                continue
+                if not self.对手.触发了反击:continue                       
+            if self.对手.触发了反击:
+                self.对手.进行普攻()
+                self.对手.触发了反击=False
             break
 
     def 每次轮序数据重置(self):
@@ -278,12 +303,12 @@ class Role():
             else:self.进行普攻()
             
     def 计算单方面板(self):
-        self.面板_有视防御伤=self.攻-self.对手.防
+        self.面板_有视防御伤=(self.攻-self.对手.防)*(1+self.增伤-self.对手.减伤)
         self.面板_打对方回合数=self.对手.血/self.面板_有视防御伤
         self.面板_打对方实际回合数=math.ceil(self.面板_打对方回合数)
         self.面板_有视防御伤百分比=1/self.面板_打对方回合数
         self.面板_吸血回血量=0 if self.吸-self.对手.抗吸<=0 else int(self.面板_有视防御伤*(self.吸-self.对手.抗吸)/100)
-        self.面板_主灵兽伤百分比=self.攻*self.主灵兽伤倍率_乘在攻/self.对手.血
+        self.面板_主灵兽伤百分比=self.攻*self.主灵兽伤倍率_乘在攻/self.对手.血*(1+self.增伤-self.对手.减伤)
         self.面板_主灵兽治疗百分比=self.攻*self.主灵兽治疗倍率_乘在攻/self.血
              
     def 进行吸血(self):
@@ -292,11 +317,11 @@ class Role():
         self.剩余血量+=self.吸血回血量
         
     def 设置战斗属性(self, 均属, 高属名="", 高属=-1):
-        self.吸=self.连=self.暴=均属
+        self.吸=self.连=self.暴=self.反=均属
         if 高属名:exec(f"self.{高属名}={高属}")
     
     def 设置战斗抗性(self, 均抗, 高抗名="", 高抗=-1):
-        self.抗吸=self.抗连=self.抗暴=均抗
+        self.抗吸=self.抗连=self.抗暴=self.抗反=均抗
         if 高抗名:exec(f"self.{高抗名}={高抗}")
     
     def 使双方战斗属性与抗性完全相等(self):
@@ -309,68 +334,65 @@ class Role():
             self.记者.平局次数+=1
         self.记者.参赛次数+=1
     
-
-    def buff变化(self):
-        if self.时刻=="回合结束时":
-            #print("回合结束时decrement",self.buff_攻.role.攻, self.buff_攻.__dict__)
-            #input()
-            self.buff_攻.decrement()
-            #print("回合结束时decrement",self.buff_攻.role.攻, self.buff_攻.__dict__)
-            #input()
-            self.buff_连.decrement()
-            self.buff_减伤.decrement()                 
-                
-        if self.buff_攻.is_deactivated():
-            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前攻击力{self.攻:g},",end="")
-            #print("从激活到失效",self.buff_攻.role.攻, self.buff_攻.__dict__)
-            #input()
-            self.buff_攻.deactivate()  
-            #print("从激活到失效",self.buff_攻.role.攻, self.buff_攻.__dict__)
-            #input() 
-            if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})\n")
+    def buff强制失效(self):
+        for _ in self.buff:
+            self.buff[_].duration=0
         
-        if self.buff_连.is_deactivated():
+        self.buff从激活到失效()
+        
+    def buff从激活到失效(self):
+        # 检查剩余回合数是否足够，若不足则从激活到失效
+        # 回退将增益的数值
+        if self.buff["攻"].is_about_to_deactivate():
+            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前攻击力{int(self.攻):g},",end="")
+            self.buff["攻"].deactivate()  
+            if not self.战场.关闭战报:print(f"现攻击力{int(self.攻):g})\n")
+        
+        if self.buff["连"].is_about_to_deactivate():
             if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前连击率{self.连-self.对手.抗连:g}%,",end="")
-            self.buff_连.deactivate()
+            self.buff["连"].deactivate()
             if not self.战场.关闭战报:print(f"现连击率{self.连-self.对手.抗连:g}%)\n")
         
-        if self.buff_减伤.is_deactivated():
+        if self.buff["减伤"].is_about_to_deactivate():
             if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前减伤{self.减伤*100:g}%,",end="")
-            self.buff_减伤.deactivate()
+            self.buff["减伤"].deactivate()
             if not self.战场.关闭战报:print(f"现减伤{self.减伤*100:g}%)\n")
             
+
+    def buff变化(self):
+        # 回合结束时，对buff剩余回合数进行减量
+        if self.时刻=="回合结束时":
+            self.buff["攻"].decrement()
+            self.buff["连"].decrement()
+            self.buff["减伤"].decrement()
+                            
+        self.buff从激活到失效()
     
     def 灵兽效果(self):
         if not self.buff_ON:return
         
         if self.主灵兽名称=="灵狐":
-            if not self.战场.关闭战报:print(f"(灵兽效果:此前攻击力{self.攻:g},",end="")
+            if not self.战场.关闭战报:print(f"(灵兽效果:此前攻击力{int(self.攻):g},",end="")
             # 如果在效果未结束时再次给效果，不叠加。直到上次效果结束才重新相同效果。
             # 再怎么样也只是效果不断，而从来不会是更强的效果。
             # 否则加强效果，连乘多次，太变态了。            
-            if self.buff_攻.active==False:
-                #print("从失效到激活",self.buff_攻.role.攻, self.buff_攻.__dict__)
-                #input()
-                self.buff_攻.activate("攻",0.2,1)
-                #print("从失效到激活",self.buff_攻.role.攻, self.buff_攻.__dict__)
-                #input()
-            if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})")
+            if self.buff["攻"].active==False:
+                # 从失效到激活
+                self.buff["攻"].activate("攻",1.2,1)
+            if not self.战场.关闭战报:print(f"现攻击力{int(self.攻):g})")
         
-        elif self.主灵兽名称=="天马":
+        elif self.主灵兽名称 in ("天马", "鹿蜀"):
             if not self.战场.关闭战报:print(f"(灵兽效果:此前连击率{self.连-self.对手.抗连:g}%,",end="")
-            # 如果在效果未结束时再次给效果，不叠加。直到上次效果结束才重新相同效果。
-            # 再怎么样也只是效果不断，而从来不会是更强的效果。
-            # 否则加强效果，连乘多次，太变态了。
-            if self.buff_连.active==False:
-                self.buff_连.activate("连",20,1)
+            if self.buff["连"].active==False:
+                self.buff["连"].activate("连",20,1)
             
             if not self.战场.关闭战报:print(f"现连击率{self.连-self.对手.抗连:g}%)")   	
         
         elif self.主灵兽名称=="鸾鸟":
             if not self.战场.关闭战报:print(f"(灵兽效果:此前减伤{self.减伤*100:g}%,",end="")
             
-            if self.buff_减伤.active==False:
-                self.buff_减伤.activate("减伤",0.15,1)
+            if self.buff["减伤"].active==False:
+                self.buff["减伤"].activate("减伤",0.15,1)
             
             if not self.战场.关闭战报:print(f"现减伤{self.减伤*100:g}%)")   	
             
@@ -383,7 +405,7 @@ class Role():
                 
         if self.主灵兽伤倍率_乘在攻:
             if not self.战场.关闭战报:print(f"【{self.名称}{self.哪一方}主灵兽{self.主灵兽名称}行动】")            
-            # 先造成伤害再效果
+            # 先参战技能伤害，再效果
             self.计算本次伤害出发("主灵兽伤")
             self.对手.计算本次伤害受到()        
             self.对手.掉血之血条变化()
@@ -391,14 +413,14 @@ class Role():
         
         if self.主灵兽治疗倍率_乘在攻:
             if not self.战场.关闭战报:print(f"【{self.名称}{self.哪一方}主灵兽{self.主灵兽名称}行动】")            
-            # 先造成伤害再效果
+            # 先参战技能治疗，再效果
             self.计算本次治疗("主灵兽治疗")
             self.受到治疗()        
             self.灵兽效果()
    
     def 受到治疗(self):
        self.剩余血量+=self.本次治疗
-       if not self.战场.关闭战报:print(f"{self.名称}受到治疗:{int(self.本次治疗)} 治疗百分比:{self.本次治疗/self.血*100:.2f}%")
+       if not self.战场.关闭战报:print("\033[32m"+f"{self.名称}受到治疗:{int(self.本次治疗)} 治疗百分比:{self.本次治疗/self.血*100:.2f}%"+"\033[0m")
              
     def 计算本次治疗(self,治疗种类):
         if 治疗种类=="主灵兽治疗":

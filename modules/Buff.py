@@ -46,7 +46,7 @@ class Buff():
         self.active = True
     
     # 是否从激活到失效         
-    def is_deactivated(self):
+    def is_about_to_deactivate(self):
         return self.time>0 and self.active==True and self.duration==0
     
     
@@ -58,6 +58,7 @@ class Buff():
         elif self.name=="连":
             self.role.连-=self.gain
         elif self.name=="减伤":
-        	self.role.减伤-=self.gain
+            self.role.减伤-=self.gain
+        	
         self.active=False
-            
+                
