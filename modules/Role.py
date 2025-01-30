@@ -39,7 +39,7 @@ class Role():
         self.暴伤系数=2
         self.青龙灵脉=0
         self.每次暴击后暴伤系数递增=(7+5*self.青龙灵脉)/100 if self.青龙灵脉 else 0
-    
+        self.连击率渐减系数=1
     
         # --- 媒 体 活 动 与 记 者 ---
         self.记者=Stat()
@@ -78,22 +78,28 @@ class Role():
 
 
         # --- 对是否支持buff功能的开关 ---
-        self.buff_ON=True        
-
+        self.buff_ON=True               
         
-        # --- 其 他 ---
-        self.连击率渐减系数=1
-
         
         # --- 强 弱 灵 ---
         self.强灵=self.弱灵=0
+
         	
-        	
+        # --- 精 怪 ---
         self.携带精怪=[]
         
         self.精怪图鉴_魔礼青_层数=0
         self.精怪图鉴_魔礼青_满层=5
         
+    
+    def 载入精怪(self):
+        if "梼杌" in self.携带精怪:
+            self.连+=20
+            self.反+=20
+        if "黑麒麟" in self.携带精怪:
+            self.对手.连-=28
+            self.对手.暴-=28
+         
         
    
     def 设置基础属性(self,*underlying_attributes):
@@ -192,6 +198,8 @@ class Role():
                 if self.精怪图鉴_魔礼青_层数==self.精怪图鉴_魔礼青_满层:
                     if not self.战场.关闭战报:print("(已满层)")
                 elif not self.战场.关闭战报:print()
+        elif self._时刻=="本场开始":
+            self.载入精怪()
             
     def 妖气变化(self):
         if self.时刻=="释放道法后":
@@ -238,6 +246,7 @@ class Role():
             print("\033[34m" if self.名称=="敌" else "\x1b[31m",end=str())
             print(f"{self.名称}受到伤害:{int(self.本次伤害受到)} 掉血百分比:{self.本次伤害受到/self.血*100:.2f}%")
             print("\033[0m",end="")
+            
     def 检查复活(self):
         self.已死亡=self.剩余血量<=0
         左=self.战场.左
@@ -451,7 +460,7 @@ class Role():
              
     def 计算本次治疗(self,治疗种类):
         if 治疗种类=="主灵兽治疗":
-            self.本次治疗=self.攻*self.主灵兽治疗倍率_乘在攻
+            self.本次治疗=self.攻*self.主灵兽治疗倍率_乘在攻*(1+self.强灵-self.对手.弱灵)
             return
             
         
