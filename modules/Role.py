@@ -65,21 +65,39 @@ class Role():
         self.主灵兽名称=""
         self.主灵兽伤倍率_乘在攻=0
         self.主灵兽出手频率=0
+        
         self.buff=dict.fromkeys(("攻","连","减伤"))
         for key in self.buff:
             self.buff[key]=Buff(key,self,0,0) 
         
         self.主灵兽治疗倍率_乘在攻=0
+
         
         # --- 增 减 伤 ---
-        self.增伤=0
-        self.减伤=0
-        
+        self.增伤=self.减伤=0
+
+
         # --- 对是否支持buff功能的开关 ---
-        self.buff_ON=True
+        self.buff_ON=True        
+
         
+        # --- 其 他 ---
         self.连击率渐减系数=1
+
+        
+        # --- 强 弱 灵 ---
+        self.强灵=self.弱灵=0
+        	
+        	
+        self.携带精怪=[]
+        
+        self.精怪图鉴_魔礼青_层数=0
+        self.精怪图鉴_魔礼青_满层=5
+        
+        
    
+    def 设置基础属性(self,*underlying_attributes):
+        self.血,self.攻,self.防,self.敏=underlying_attributes
     
     def 获取基本属性(self):
         return (self.血, self.攻, self.防, self.敏)
@@ -166,6 +184,14 @@ class Role():
             if self.神通功能开启:self.神通跟随()
         elif self._时刻=="回合结束时":
             if self.buff_ON:self.buff变化()
+        elif self._时刻=="受击时":
+            if "魔礼青" in self.携带精怪 and self.精怪图鉴_魔礼青_层数<self.精怪图鉴_魔礼青_满层:
+                self.反+=10
+                self.精怪图鉴_魔礼青_层数+=1
+                if not self.战场.关闭战报:print(f"⚡️{self.名称}精怪魔礼青触发,现反击率{self.反-self.对手.抗反:g}%",end="")
+                if self.精怪图鉴_魔礼青_层数==self.精怪图鉴_魔礼青_满层:
+                    if not self.战场.关闭战报:print("(已满层)")
+                elif not self.战场.关闭战报:print()
             
     def 妖气变化(self):
         if self.时刻=="释放道法后":
@@ -203,7 +229,7 @@ class Role():
                 self.触发了暴击=False
             return
         if 伤害种类=="主灵兽伤":
-            self.本次伤害出发=self.攻*self.主灵兽伤倍率_乘在攻*(1+self.增伤-self.对手.减伤)
+            self.本次伤害出发=self.攻*self.主灵兽伤倍率_乘在攻*(1+self.强灵-self.对手.弱灵)*(1+self.增伤-self.对手.减伤)
             return
                 
     def 计算本次伤害受到(self):
@@ -275,9 +301,10 @@ class Role():
         while True:
             self.连击暴击判定()
             self.计算本次伤害出发("有视防御伤")
-            self.对手.计算本次伤害受到()            
-            self.进行吸血()
+            self.对手.计算本次伤害受到()          
+            self.进行吸血()            
             self.对手.时刻=="掉血之未回妖气"
+            self.对手.时刻="受击时"
             self.时刻="普攻后之未发动神通"
             self.对手.掉血之血条变化()
             self.对手.反击判定()
@@ -344,9 +371,9 @@ class Role():
         # 检查剩余回合数是否足够，若不足则从激活到失效
         # 回退将增益的数值
         if self.buff["攻"].is_about_to_deactivate():
-            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前攻击力{int(self.攻):g},",end="")
+            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前攻击力{self.攻:g},",end="")
             self.buff["攻"].deactivate()  
-            if not self.战场.关闭战报:print(f"现攻击力{int(self.攻):g})\n")
+            if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})\n")
         
         if self.buff["连"].is_about_to_deactivate():
             if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前连击率{self.连-self.对手.抗连:g}%,",end="")
@@ -372,14 +399,14 @@ class Role():
         if not self.buff_ON:return
         
         if self.主灵兽名称=="灵狐":
-            if not self.战场.关闭战报:print(f"(灵兽效果:此前攻击力{int(self.攻):g},",end="")
+            if not self.战场.关闭战报:print(f"(灵兽效果:此前攻击力{self.攻:g},",end="")
             # 如果在效果未结束时再次给效果，不叠加。直到上次效果结束才重新相同效果。
             # 再怎么样也只是效果不断，而从来不会是更强的效果。
             # 否则加强效果，连乘多次，太变态了。            
             if self.buff["攻"].active==False:
                 # 从失效到激活
                 self.buff["攻"].activate("攻",1.2,1)
-            if not self.战场.关闭战报:print(f"现攻击力{int(self.攻):g})")
+            if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})")
         
         elif self.主灵兽名称 in ("天马", "鹿蜀"):
             if not self.战场.关闭战报:print(f"(灵兽效果:此前连击率{self.连-self.对手.抗连:g}%,",end="")

@@ -1,6 +1,6 @@
 class Stat():
     def __init__(self):
-        self._选手=None
+        self.选手=None
         self.本场触发连击=0
         self.本场触发暴击=0
         self.本场触发反击=0
