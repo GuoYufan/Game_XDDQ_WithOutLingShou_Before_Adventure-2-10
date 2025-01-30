@@ -91,11 +91,12 @@ class Convert():
         
     def 从源等级计算源属性提升(self):
         # 从等级计算属性提升
-        calc=lambda attr_begin,lv,improve_per_two_level:attr_begin+improve_per_two_level*((lv-1)//2)+(lv-1)%2*0.002
+        calc=lambda attr_begin,lv,improve_per_two_level:attr_begin+improve_per_two_level*((lv-1)//2)+(lv-1)%2*((improve_per_two_level/2*1000//1)/1000)
              
         arg0=self.初始属性提升库[self.src_breed]
         arg1=int(self.src_level)
         arg2=self.每两级属性提升增幅库[self.src_breed]
+        
         self.src_improve=calc(arg0, arg1, arg2)
         
         
@@ -119,7 +120,7 @@ class Convert():
     获取参战技能倍率=lambda self, name:self.result[name+"参战技能倍率"]
 
 def run():
-    convert=Convert(24,"天马")
+    convert=Convert(58,"灵狐")
     print("◾️",end="")
     convert.show()
     input()
