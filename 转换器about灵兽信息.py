@@ -9,10 +9,10 @@ class Convert():
         self.初始属性提升列表=[ i/100 for i in [12,9,5]]
         self.初始属性提升库=dict(zip(self.品种列表, self.初始属性提升列表))
         
-        self.每两级属性提升增幅列表=[ i/100 for i in [0.2+0.3,0.2*2,0.2*2]]
+        self.每两级属性提升增幅列表=[ i/100 for i in [0.2+0.3,0.2*2,0.1*2]]
         self.每两级属性提升增幅库=dict(zip(self.品种列表, self.每两级属性提升增幅列表))
         
-        self.每升一级消耗灵果增幅列表=[100,50,20]
+        self.每升一级消耗灵果增幅列表=[100,50,10]
         self.每升一级消耗灵果增幅库=dict(zip(self.品种列表, self.每升一级消耗灵果增幅列表))
         
         self.初始参战技能倍率列表=[0.85,0.9,0.6]
@@ -119,7 +119,7 @@ class Convert():
     获取参战技能倍率=lambda self, name:self.result[name+"参战技能倍率"]
 
 def run():
-    convert=Convert(21,"鸾鸟")
+    convert=Convert(24,"天马")
     print("◾️",end="")
     convert.show()
     input()
