@@ -1,7 +1,7 @@
 import random, math, traceback
 from Stat import Stat
 from Fight import Fight, FightEnd
-from Buff import Buff
+from Buff import Buff,Debuff
 
 
 class Role():
@@ -66,10 +66,14 @@ class Role():
         self.主灵兽伤倍率_乘在攻=0
         self.主灵兽出手频率=0
         
-        self.buff=dict.fromkeys(("攻","连","减伤"))
+        self.buff=dict.fromkeys(("攻","连","减伤","反","敏"))
         for key in self.buff:
             self.buff[key]=Buff(key,self,0,0) 
         
+        self.debuff=dict.fromkeys("攻")
+        for key in self.debuff:
+            self.debuff[key]=Debuff(key,self,0,0)
+  
         self.主灵兽治疗倍率_乘在攻=0
 
         
@@ -88,8 +92,10 @@ class Role():
         # --- 精 怪 ---
         self.携带精怪=[]
         
-        self.精怪图鉴_魔礼青_层数=0
-        self.精怪图鉴_魔礼青_满层=5
+        魔礼青=dict(zip(("层数","满层"),(0,5)))
+        干饭人={"治疗倍率_乘在攻":10/100}
+        self.精怪图鉴=dict(zip(("魔礼青","干饭人"),(魔礼青,干饭人)))
+        
         
     
     def 载入精怪(self):
@@ -133,7 +139,7 @@ class Role():
          self._触发了暴击=value
          if self._触发了暴击:
              self.记者.本场触发暴击+=1
-             self.记者.累计触发暴击+=1
+             self.战场.累计触发暴击[self.名称]+=1
              
     @property
     def 触发了连击(self):
@@ -146,7 +152,7 @@ class Role():
          self._触发了连击=value        
          if self._触发了连击:
              self.记者.本场触发连击+=1
-             self.记者.累计触发连击+=1
+             self.战场.累计触发连击[self.名称]+=1
 
     @property
     def 触发了反击(self):
@@ -159,7 +165,7 @@ class Role():
          self._触发了反击=value
          if self._触发了反击:
              self.记者.本场触发反击+=1
-             self.记者.累计触发反击+=1                  
+             self.战场.累计触发反击[self.名称]+=1                
     
     @property
     def 剩余血量(self):
@@ -191,15 +197,27 @@ class Role():
         elif self._时刻=="回合结束时":
             if self.buff_ON:self.buff变化()
         elif self._时刻=="受击时":
-            if "魔礼青" in self.携带精怪 and self.精怪图鉴_魔礼青_层数<self.精怪图鉴_魔礼青_满层:
-                self.反+=10
-                self.精怪图鉴_魔礼青_层数+=1
-                if not self.战场.关闭战报:print(f"⚡️{self.名称}精怪魔礼青触发,现反击率{self.反-self.对手.抗反:g}%",end="")
-                if self.精怪图鉴_魔礼青_层数==self.精怪图鉴_魔礼青_满层:
-                    if not self.战场.关闭战报:print("(已满层)")
-                elif not self.战场.关闭战报:print()
+            self.检查精怪()
         elif self._时刻=="本场开始":
             self.载入精怪()
+        elif self._时刻=="回合开始时":
+            self.检查精怪()
+            
+    def 检查精怪(self):
+        if self.时刻=="受击时":
+            if "魔礼青" in self.携带精怪 and self.精怪图鉴["魔礼青"]["层数"]<self.精怪图鉴["魔礼青"]["满层"]:
+                self.反+=10
+                self.精怪图鉴["魔礼青"]["层数"]+=1
+                if not self.战场.关闭战报:print(f"⚡️{self.名称}精怪魔礼青触发,现反击率{self.反-self.对手.抗反:g}%",end="")
+                if self.精怪图鉴["魔礼青"]["层数"]==self.精怪图鉴["魔礼青"]["满层"]:
+                    if not self.战场.关闭战报:print("(已满层)")
+                elif not self.战场.关闭战报:print()
+        if self.时刻=="回合开始时":
+            if "干饭人" in self.携带精怪:
+                self.计算本次治疗("干饭人")
+                self.受到治疗()
+                if not self.战场.关闭战报:print(f"⚡️{self.名称}精怪干饭人触发,治疗了{self.本次治疗/self.血*100:g}%",end="")
+
             
     def 妖气变化(self):
         if self.时刻=="释放道法后":
@@ -363,18 +381,22 @@ class Role():
     def 使双方战斗属性与抗性完全相等(self):
         pass
             
-    def 记者的变化(self):
-        if self.战场.谁胜==self.记者.选手:
-            self.记者.获胜次数+=1
+    def 战场统计的变化(self):
+        if self.战场.谁胜==self:
+            self.战场.获胜次数[self.名称]+=1
         elif self.战场.谁胜==None:
-            self.记者.平局次数+=1
-        self.记者.参赛次数+=1
+            self.战场.平局次数+=1
+        self.战场.参赛次数[self.名称]+=1
     
+    '''
     def buff强制失效(self):
         for _ in self.buff:
             self.buff[_].duration=0
+        for _ in self.debuff:
+            self.debuff[_].duration=0
         
         self.buff从激活到失效()
+    '''
         
     def buff从激活到失效(self):
         # 检查剩余回合数是否足够，若不足则从激活到失效
@@ -393,14 +415,33 @@ class Role():
             if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前减伤{self.减伤*100:g}%,",end="")
             self.buff["减伤"].deactivate()
             if not self.战场.关闭战报:print(f"现减伤{self.减伤*100:g}%)\n")
+
+        
+        if self.buff["反"].is_about_to_deactivate():
+            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前反击率{self.反-self.对手.抗反:g}%,",end="")
+            self.buff["反"].deactivate()
+            if not self.战场.关闭战报:print(f"现反击率{self.反-self.对手.抗反:g}%)\n")
             
+        if self.buff["敏"].is_about_to_deactivate():
+            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前敏捷{self.敏:g},",end="")
+            self.buff["敏"].deactivate()
+            if not self.战场.关闭战报:print(f"现敏捷{self.敏:g})\n")
+        
+        if self.debuff["攻"].is_about_to_deactivate():
+            if not self.战场.关闭战报:print(f"(灵兽效果已结束:此前攻击力{self.攻:g},",end="")
+            self.debuff["攻"].deactivate()
+            if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})\n")
+
 
     def buff变化(self):
         # 回合结束时，对buff剩余回合数进行减量
         if self.时刻=="回合结束时":
             self.buff["攻"].decrement()
-            self.buff["连"].decrement()
+            self.buff["连"].decrement()            
             self.buff["减伤"].decrement()
+            self.buff["反"].decrement()
+            self.buff["敏"].decrement()
+            self.debuff["攻"].decrement()
                             
         self.buff从激活到失效()
     
@@ -417,21 +458,41 @@ class Role():
                 self.buff["攻"].activate("攻",1.2,1)
             if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})")
         
-        elif self.主灵兽名称 in ("天马", "鹿蜀"):
+        elif self.主灵兽名称 =="天马":
             if not self.战场.关闭战报:print(f"(灵兽效果:此前连击率{self.连-self.对手.抗连:g}%,",end="")
             if self.buff["连"].active==False:
-                self.buff["连"].activate("连",20,1)
-            
+                self.buff["连"].activate("连",20,1)           
             if not self.战场.关闭战报:print(f"现连击率{self.连-self.对手.抗连:g}%)")   	
+
         
         elif self.主灵兽名称=="鸾鸟":
-            if not self.战场.关闭战报:print(f"(灵兽效果:此前减伤{self.减伤*100:g}%,",end="")
-            
+            if not self.战场.关闭战报:print(f"(灵兽效果:此前减伤{self.减伤*100:g}%,",end="")            
             if self.buff["减伤"].active==False:
-                self.buff["减伤"].activate("减伤",0.15,1)
+                self.buff["减伤"].activate("减伤",0.15,1)            
+            if not self.战场.关闭战报:print(f"现减伤{self.减伤*100:g}%)")
+
+
+        elif self.主灵兽名称 == "鹿蜀":
+            if not self.战场.关闭战报:print(f"(灵兽效果:此前反击率{self.反-self.对手.抗反:g}%,",end="")
+            if self.buff["反"].active==False:
+                self.buff["反"].activate("反",20,1)            
+            if not self.战场.关闭战报:print(f"现反击率{self.反-self.对手.抗反:g}%)")   	
+
+        
+        elif self.主灵兽名称=="窫窳":
+            if not self.战场.关闭战报:print(f"(灵兽效果:此前敏捷{self.敏:g},",end="")            
+            if self.buff["敏"].active==False:
+                self.buff["敏"].activate("敏",1.2,1)            
+            if not self.战场.关闭战报:print(f"现敏捷{self.敏:g})")
             
-            if not self.战场.关闭战报:print(f"现减伤{self.减伤*100:g}%)")   	
-            
+        
+        elif self.主灵兽名称=="封豨":
+            if not self.战场.关闭战报:print(f"(灵兽效果:此前攻{self.对手.攻:g},",end="")            
+            if self.对手.debuff["攻"].active==False:
+                self.对手.debuff["攻"].activate("攻",1.2,1)        
+            if not self.战场.关闭战报:print(f"现攻{self.对手.攻:g})")
+
+                        
  
         
     def 轮序到灵兽(self):
@@ -462,5 +523,7 @@ class Role():
         if 治疗种类=="主灵兽治疗":
             self.本次治疗=self.攻*self.主灵兽治疗倍率_乘在攻*(1+self.强灵-self.对手.弱灵)
             return
-            
+        if 治疗种类=="干饭人":
+            self.本次治疗=self.攻*self.精怪图鉴["干饭人"]["治疗倍率_乘在攻"]
+            return
         

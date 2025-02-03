@@ -23,7 +23,12 @@ class Buff():
             elif self.name=="连":
                 self.role.连 += self.gain
             elif self.name=="减伤":
-            	self.role.减伤 += self.gain
+                self.role.减伤 += self.gain
+            elif self.name=="反":
+                self.role.反 += self.gain
+            elif self.name=="敏":
+                self.role.敏 *= self.gain
+                
             self.active = True
 
     # 刷新持续回合数
@@ -59,6 +64,22 @@ class Buff():
             self.role.连-=self.gain
         elif self.name=="减伤":
             self.role.减伤-=self.gain
-        	
+        elif self.name=="反":
+            self.role.反-=self.gain
+        elif self.name=="敏":
+            self.role.敏/=self.gain
+                   	
         self.active=False
-                
+
+
+class Debuff(Buff):
+    def apply(self):
+        if not self.active:
+            if self.name=="攻":
+                self.role.攻 /= self.gain                                         
+            self.active = True
+            
+    def deactivate(self):
+        if self.name=="攻":            
+            self.role.攻 *= self.gain
+
