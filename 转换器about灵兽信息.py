@@ -2,25 +2,27 @@ import math
 
 class Convert():
     def __init__(self,level,name):
-        self.品种列表=["传说","卓越","常见"]
-        self.名称列表=["鸾鸟","天马","灵狐"]
+        self.品种列表=["神话","传说","卓越","常见"]
+        self.名称列表=["玄武","鸾鸟","天马","灵狐"]
         self.找灵兽是哪个品种库=dict(zip(self.名称列表, self.品种列表))
-
-        self.初始属性提升列表=[ i/100 for i in [12,9,5]]
+        self.找灵兽是哪个品种库["应龙"]="传说"
+        
+        self.初始属性提升列表=[ i/100 for i in [15,12,9,5]]
         self.初始属性提升库=dict(zip(self.品种列表, self.初始属性提升列表))
         
-        self.每两级属性提升增幅列表=[ i/100 for i in [0.2+0.3,0.2*2,0.1*2]]
+        self.每两级属性提升增幅列表=[ i/100 for i in [0.3*2, 0.2+0.3, 0.2*2, 0.1*2]]
         self.每两级属性提升增幅库=dict(zip(self.品种列表, self.每两级属性提升增幅列表))
         
-        self.每升一级消耗灵果增幅列表=[100,50,10]
+        self.每升一级消耗灵果增幅列表=[200,100,50,10]
         self.每升一级消耗灵果增幅库=dict(zip(self.品种列表, self.每升一级消耗灵果增幅列表))
         
-        self.初始参战技能倍率列表=[0.85,0.9,0.6]
-        self.初始参战技能倍率库=dict(zip(self.名称列表, self.初始参战技能倍率列表))
+        self.初始参战技能倍率列表=[1.1,0.85,0.9,0.6]
+        self.初始参战技能倍率库=dict(zip(self.名称列表, self.初始参战技能倍率列表))        
+        self.初始参战技能倍率库["应龙"]=3.5
         
-        self.每二十级参战技能倍率增幅列表=[0.13,0.135,0.08]
+        self.每二十级参战技能倍率增幅列表=[0.16,0.13,0.135,0.08]
         self.每二十级参战技能倍率增幅库=dict(zip(self.名称列表, self.每二十级参战技能倍率增幅列表))
-
+        self.每二十级参战技能倍率增幅库["应龙"]=0.5
         
         #'''
         del (
@@ -86,8 +88,8 @@ class Convert():
         self.update_src()
     
     def 从源等级计算源参战技能倍率(self):
-        ability_level=self.src_level//20
-        self.src_ability=self.初始参战技能倍率库[self.src_name]+self.每二十级参战技能倍率增幅库[self.src_name]*ability_level
+        ability_level=self.src_level//20+1 if self.src_level<=80 else 80//20+1
+        self.src_ability=self.初始参战技能倍率库[self.src_name]+self.每二十级参战技能倍率增幅库[self.src_name]*(ability_level-1)
         
     def 从源等级计算源属性提升(self):
         # 从等级计算属性提升
@@ -120,7 +122,7 @@ class Convert():
     获取参战技能倍率=lambda self, name:self.result[name+"参战技能倍率"]
 
 def run():
-    convert=Convert(58,"灵狐")
+    convert=Convert(30,"鸾鸟")
     print("◾️",end="")
     convert.show()
     input()
@@ -134,7 +136,17 @@ def run():
     convert.设置要转换到的灵兽叫什么名称("灵狐")
     convert.show()
     灵狐等级=convert.获取等级("灵狐")
-    print()
+    input()
+    
+    convert.设置要转换到的灵兽叫什么名称("玄武")
+    convert.show()
+    玄武等级=convert.获取等级("玄武")
+    input()
+    
+    convert.设置要转换到的灵兽叫什么名称("应龙")
+    convert.show()
+    玄武等级=convert.获取等级("应龙")
+    input()
     
     
     convert=Convert(天马等级, "天马")
@@ -143,6 +155,16 @@ def run():
     print()
     
     convert=Convert(灵狐等级, "灵狐")
+    print("◾️",end="")
+    convert.show()
+    print()
+    
+    convert=Convert(玄武等级, "玄武")
+    print("◾️",end="")
+    convert.show()
+    print()
+    
+    convert=Convert(玄武等级, "应龙")
     print("◾️",end="")
     convert.show()
     
