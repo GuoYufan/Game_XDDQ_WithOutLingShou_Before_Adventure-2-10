@@ -287,23 +287,24 @@ class Role():
         if self.战场.关闭连暴反:return
         
         有效连击率 = (self.连-self.对手.抗连)*self.连击率渐减系数
+        随机数 = random.randint(1,100)
         
-        
-        if 1 <= random.randint(1,100) <= 有效连击率:
+        if 1 <= 随机数 <= 有效连击率:
             self.触发了连击=True
             self.连击率渐减系数*=0.5
             if not self.战场.关闭战报:
-                print(f"❗️{self.名称}触发了连击(此前连击率:{有效连击率:g}%)")
+                print(f"随机数{随机数}❗️{self.名称}触发了连击(此前连击率:{有效连击率:g}%)")
         else:
             self.触发了连击=False
             self.连击率渐减系数=1
               
         
         有效暴击率 = self.暴-self.对手.抗暴
-        if 1 <= random.randint(1,100) <= 有效暴击率:
+        随机数 = random.randint(1,100)
+        if 1 <= 随机数 <= 有效暴击率:
             self.触发了暴击=True
             if not self.战场.关闭战报:
-                print(f"❗️{self.名称}触发了暴击(此前暴击率:{有效暴击率:g}%)")
+                print(f"随机数{随机数}❗️{self.名称}触发了暴击(此前暴击率:{有效暴击率:g}%)")
         else:self.触发了暴击=False
    
     def 释放道法(self):
@@ -314,11 +315,12 @@ class Role():
         if self.战场.关闭连暴反:return
         
         有效反击率 = self.反-self.对手.抗反
-        #input(有效反击率)             
-        if 1 <= random.randint(1,100) <= 有效反击率:
+        随机数 = random.randint(1,100)
+             
+        if 1 <= 随机数 <= 有效反击率:
             self.触发了反击=True
             if not self.战场.关闭战报:                
-                print(f"❗️{self.名称}触发了反击(此前反击率:{有效反击率:g}%)")
+                print(f"随机数{随机数}❗️{self.名称}触发了反击(此前反击率:{有效反击率:g}%)")
                 
         else:self.触发了反击=False
    
@@ -381,12 +383,7 @@ class Role():
     def 使双方战斗属性与抗性完全相等(self):
         pass
             
-    def 战场统计的变化(self):
-        if self.战场.谁胜==self:
-            self.战场.获胜次数[self.名称]+=1
-        elif self.战场.谁胜==None:
-            self.战场.平局次数+=1
-        self.战场.参赛次数[self.名称]+=1
+
     
     '''
     def buff强制失效(self):
@@ -455,7 +452,7 @@ class Role():
             # 否则加强效果，连乘多次，太变态了。            
             if self.buff["攻"].active==False:
                 # 从失效到激活
-                self.buff["攻"].activate("攻",1.2,1)
+                self.buff["攻"].activate("攻",0.2,1)
             if not self.战场.关闭战报:print(f"现攻击力{self.攻:g})")
         
         elif self.主灵兽名称 =="天马":
@@ -482,14 +479,14 @@ class Role():
         elif self.主灵兽名称=="窫窳":
             if not self.战场.关闭战报:print(f"(灵兽效果:此前敏捷{self.敏:g},",end="")            
             if self.buff["敏"].active==False:
-                self.buff["敏"].activate("敏",1.2,1)            
+                self.buff["敏"].activate("敏",0.2,1)            
             if not self.战场.关闭战报:print(f"现敏捷{self.敏:g})")
             
         
         elif self.主灵兽名称=="封豨":
             if not self.战场.关闭战报:print(f"(灵兽效果:此前攻{self.对手.攻:g},",end="")            
             if self.对手.debuff["攻"].active==False:
-                self.对手.debuff["攻"].activate("攻",1.2,1)        
+                self.对手.debuff["攻"].activate("攻",0.2,1)        
             if not self.战场.关闭战报:print(f"现攻{self.对手.攻:g})")
 
                         
@@ -521,7 +518,7 @@ class Role():
              
     def 计算本次治疗(self,治疗种类):
         if 治疗种类=="主灵兽治疗":
-            self.本次治疗=self.攻*self.主灵兽治疗倍率_乘在攻*(1+self.强灵-self.对手.弱灵)
+            self.本次治疗=self.攻*self.主灵兽治疗倍率_乘在攻*(1+self.强灵-self.对手.弱灵)            
             return
         if 治疗种类=="干饭人":
             self.本次治疗=self.攻*self.精怪图鉴["干饭人"]["治疗倍率_乘在攻"]

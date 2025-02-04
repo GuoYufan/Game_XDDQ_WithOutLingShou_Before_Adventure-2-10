@@ -22,7 +22,10 @@ class Fight():
         self.获胜次数=dict.fromkeys((self.左.名称,self.左.对手.名称),0)
         self.参赛次数=dict.fromkeys((self.左.名称,self.左.对手.名称),0)
         self.平局次数=0
-        self.历史将敌人压到最低血线=dict.fromkeys((self.左.名称,self.左.对手.名称),{"数值":0,"那一场附带信息":""})
+        self.历史将敌人压到最低血线={
+        	self.左.名称:{"数值":0,"那一场附带信息":""},
+            	self.左.对手.名称:{"数值":0,"那一场附带信息":""}
+        	}
         self.第一次使敌人掉一管血=dict.fromkeys((self.左.名称,self.左.对手.名称),"")
 
     
@@ -33,9 +36,17 @@ class Fight():
     def 本场结束(self,value):
         self._本场结束=value
         if value:
-            [_.战场统计的变化() for _ in (self.左, self.左.对手)]
-            #[_.buff强制失效() for _ in (self.左, self.左.对手)]
-
+            self.战场统计的变化()
+                        
+    
+    def 战场统计的变化(self):
+        if self.谁胜==None:
+            self.平局次数+=1
+        else:
+            self.获胜次数[self.谁胜.名称]+=1            
+        self.参赛次数[self.左.名称]+=1
+        self.参赛次数[self.左.对手.名称]+=1
+    
     def 进行选手存档(self,左,右):
         self.左=self.左_存档=左
         self.左_存档.对手=右
@@ -87,7 +98,7 @@ class Fight():
             _.面板_主灵兽伤百分比*100,
             _.面板_主灵兽伤百分比*100*(1+_.强灵-_.对手.弱灵)*(1+_.增伤-_.对手.减伤),
             	_.面板_主灵兽治疗百分比*100,
-            		_.面板_主灵兽治疗百分比*100*(1+ _.强灵 - _.对手.弱灵)*(1+_.增伤-_.对手.减伤),
+            		_.面板_主灵兽治疗百分比*100*(1+ _.强灵 - _.对手.弱灵),
             	))
 
         print(("|".join(words)).join("[]"))
@@ -181,12 +192,8 @@ class Fight():
     
     # --- 同 一 对 手 连 续 打 多 场 存 档 ---
     	
-    def 记者重新入场(self):
-        self.第几场=0
-        
-        for _ in (self.左, self.左.对手):
-            _.记者.__init__()
-            _.记者.选手=_ 
+    def 重新入场(self):
+        self.__init__(self.左_存档,self.左_存档.对手)
 
  
     # --- 媒 体 活 动 与 赛 程 安 排 ---
